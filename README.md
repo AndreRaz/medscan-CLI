@@ -1,4 +1,4 @@
-# 🏥 medscan CLI
+# medscan CLI
 
 `medscan` es una utilidad de línea de comandos (CLI) en Go para digitalizar expedientes médicos físicos (papel) y convertirlos al instante en un formato estructurado JSON. Utiliza Modelos de Lenguaje (LLMs) con capacidad de visión y persistencia local en SQLite.
 
@@ -8,24 +8,24 @@
 
 ---
 
-## 🔥 Características
+## Características Principales
 
-- **Visión por IA avanzado:** Digitaliza texto médico (incluyendo letra difícil), diagnósticos y recetas utilizando Google Gemini 2.5 Flash o Anthropic Claude.
-- **Configuración rápida (`setup`):** Configuración automática interactiva para no lidiar con archivos ni rutas.
-- **Pre-procesamiento dinámico local:** Mejora del contraste, conversión a escala de grises y recorte dinámico de las imágenes para optimizar la lectura y *ahorrar tokens*.
-- **Detección de fotos borrosas:** Calcula la varianza del Laplaciano **antes** de gastar llamadas a la API. Las fotos ilegibles se rechazan instantáneamente.
-- **Base de datos local:** Almacena todos los expedientes, visitas e historial en una base de datos local SQLite (`mediscan.db`). No necesitas infra de base de datos externa.
-- **Deduplicación:** Evita procesar dos veces el mismo archivo comparando el SHA-256.
+- **Visión por IA avanzada:** Digitaliza texto médico (incluyendo letra difícil), diagnósticos y recetas utilizando Google Gemini 2.5 Flash o Anthropic Claude.
+- **Configuración rápida (`setup`):** Configuración automática e interactiva para evitar la configuración manual de archivos y rutas.
+- **Pre-procesamiento dinámico local:** Mejora del contraste, conversión a escala de grises y recorte dinámico de las imágenes para optimizar la lectura y reducir el consumo de tokens.
+- **Detección de imágenes borrosas:** Calcula la varianza del Laplaciano antes de consumir cuota de la API. Las fotografías ilegibles se rechazan de manera instantánea.
+- **Base de datos local:** Almacena todos los expedientes, visitas e historiales en una base de datos local SQLite (`mediscan.db`), eliminando la necesidad de infraestructura de base de datos externa.
+- **Deduplicación de archivos:** Evita el procesamiento duplicado del mismo archivo mediante la validación de su firma SHA-256.
 
 ---
 
-## 🚀 Instalación y Uso Rápido (Para tu equipo)
+## Instalación y Uso
 
-### 1. Descarga el binario
+### 1. Obtener el binario
 
-Para un despliegue directo sin instalar Go, descarga el binario desde la pestaña de **Releases** y dale permisos de ejecución.
+Para un despliegue directo sin instalar el entorno de Go, se recomienda descargar el binario desde la sección de **Releases** en GitHub y asignarle permisos de ejecución.
 
-O, si tienes **Go** instalado, compila el código fuente en 1 segundo:
+Alternativamente, si el entorno de Go está configurado, la compilación desde el código fuente se realiza ejecutando los siguientes comandos:
 
 ```bash
 git clone https://github.com/AndreRaz/medscan-CLI.git
@@ -33,74 +33,76 @@ cd medscan-CLI
 make build
 ```
 
-### 2. Configura tu API Key (Automático)
+### 2. Configurar la API Key
 
-En lugar de crear archivos a mano, `medscan` incluye un asistente interactivo:
+El sistema incluye un asistente interactivo para simplificar el proceso de configuración inicial:
 
 ```bash
 ./medscan setup
 ```
-El asistente te guiará para:
-1. Crear gratis una API Key en [aistudio.google.com](https://aistudio.google.com/) en 3 clicks sin tarjeta.
-2. Definir dónde ubicar la base de datos (por defecto `./mediscan.db`).
-3. Crear tu archivo de entorno listo para usarse.
+El asistente presentará los siguientes pasos:
+1. Instrucciones para generar una API Key en [aistudio.google.com](https://aistudio.google.com/) de forma gratuita.
+2. Definición de la ruta para el archivo de la base de datos (por defecto `./mediscan.db`).
+3. Generación automática del archivo de entorno local `.env`.
 
-### 3. ¡Empieza a Escanear!
+### 3. Ejecutar el escáner de documentos
 
-Coloca las fotos (.jpg, .png) de los documentos en una carpeta y envíala a escanear:
+Colocar las imágenes de los documentos médicos (.jpg, .png) en un directorio específico y ejecutar el escaneo:
 
 ```bash
 ./medscan scan ./docs/
 ```
 
-### 4. Consultar pacientes o historiales
+### 4. Consultar expedientes y registros
+
+Los datos guardados en la base local pueden ser consultados mediante la CLI:
 
 ```bash
-# Consultar pacientes registrados:
+# Listar todos los pacientes registrados:
 ./medscan patient list
 
-# Mostrar TODO el historial y visitas médicas de un paciente por su CURP:
+# Mostrar el historial completo y visitas médicas de un paciente mediante su CURP:
 ./medscan query GACM850101HMCRLS09
 
-# Buscar a un paciente por nombre (y obtener su ID si no tiene CURP):
+# Buscar un paciente por su nombre (útil para obtener el ID de consulta si no tiene CURP):
 ./medscan query --nombre "Filomena"
 
-# Exportar un expediente JSON a tu disco (soporta --id):
+# Exportar un expediente JSON a disco (soporta el uso del identificador numérico interno --id):
 ./medscan export --id 2 -o paciente.json
 ```
 
 ---
 
-## 🗄️ Visor de Base de Datos Local
+## Visor de Base de Datos Local
 
-`medscan` también integra comandos para diagnosticar todo el sistema local:
+`medscan` integra herramientas para diagnosticar el estado del almacenamiento local:
 
 ```bash
-./medscan db stats       # Estadísticas (número de expedientes, tamaño bytes, items fallidos)
-./medscan db visitas     # Muestra las visitas médicas recientes estilo tabla de DB
-./medscan db rechazados  # ¿Por qué se rechazó un archivo? Aquí salen las fotos borrosas
+./medscan db stats       # Estadísticas generales (volumen de pacientes, tamaño del archivo, errores)
+./medscan db visitas     # Muestra una tabla con el registro de las visitas médicas recientes
+./medscan db rechazados  # Lista los archivos descartados durante el escaneo y el motivo (ej. borrosidad)
 ```
 
 ---
 
-## 🛠 Variables de entorno avanzadas / Configuración Manual
+## Configuración Manual y Variables de Entorno
 
-Si prefieres usar CI/CD o no usar `setup`, puedes crear un archivo `.env` basado en `.env.example`:
+Para uso en integraciones continuas (CI/CD) o despliegues automatizados, es posible crear un archivo `.env` manual usando `.env.example` como plantilla:
 
-| Variable | Descripción | Default |
+| Variable | Descripción | Valor por defecto |
 |----------|-------------|---------|
-| `MEDISCAN_PROVIDER` | Proveedor: `gemini` (gratis y rápido) o `anthropic` | `anthropic` |
-| `GEMINI_API_KEY` | Tu llave para Google AI Studio | - |
-| `MEDISCAN_DB_PATH` | Ruta absoluta/relativa al archivo de SQLite | `./mediscan.db` |
-| `MEDISCAN_BLUR_THRESHOLD` | Sensibilidad a borrosidad. Con buena luz pon `300` | `100.0` |
-| `MEDISCAN_MAX_WIDTH` | Ancho de preprocesamiento, 1200px rinde excelente | `1200` |
+| `MEDISCAN_PROVIDER` | Proveedor seleccionado: `gemini` o `anthropic` | `anthropic` |
+| `GEMINI_API_KEY` | Llave de autenticación para Google AI Studio | - |
+| `MEDISCAN_DB_PATH` | Ruta (absoluta o relativa) al archivo SQLite | `./mediscan.db` |
+| `MEDISCAN_BLUR_THRESHOLD` | Límite de varianza aceptable para considerar la imagen nítida | `100.0` |
+| `MEDISCAN_MAX_WIDTH` | Ancho máximo de preprocesamiento | `1200` |
 
 ---
 
-## 📄 Arquitectura & ADRs
+## Arquitectura y Decisiones de Diseño
 
-El diseño técnico ha sido documentado en el PRD del sistema.
-Destacan:
-- **`disintegration/imaging`**: Transformaciones y pre-procesamiento sin OpenCV.
-- **Laplaciano en Go Puro`: Para evitar dependencias nativas engorrosas de instalar en consultorios.
-- SQLite (`mattn/go-sqlite3`): Embebido localmente. Limitado a consultas Single-user pero muy distribuible.
+Los detalles técnicos completos se encuentran en la documentación del sistema (PRD).
+Los aspectos fundamentales de la arquitectura incluyen:
+- Uso de **`disintegration/imaging`** para realizar transformaciones de imagen estándar y preprocesamiento sin recurrir a dependencias complejas como OpenCV.
+- Implementación de **Laplaciano en Go Puro** para garantizar una detección eficiente de enfoque directamente desde la librería estándar.
+- Adopción de **SQLite (`mattn/go-sqlite3`)** embebido localmente, lo cual facilita el despliegue de la aplicación sin perder capacidades relacionales.
