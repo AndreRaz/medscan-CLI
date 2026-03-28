@@ -1,0 +1,21 @@
+# Binario compilado
+medscan
+
+# Base de datos local
+*.db
+*.db-wal
+*.db-shm
+
+# Variables de entorno (contiene API keys)
+.env
+
+# Temporales de pre-procesamiento
+/tmp/medscan_*
+
+# Go
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
