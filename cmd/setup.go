@@ -28,7 +28,7 @@ El asistente te pedirá:
 
 Al finalizar, crea o actualiza el archivo .env en el directorio actual.`,
 	// setup no necesita DB abierta, sobreescribimos PersistentPreRunE
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error { return nil },
+	PersistentPreRunE:  func(cmd *cobra.Command, args []string) error { return nil },
 	PersistentPostRunE: func(cmd *cobra.Command, args []string) error { return nil },
 	RunE: func(cmd *cobra.Command, args []string) error {
 		reader := bufio.NewReader(os.Stdin)
@@ -84,17 +84,17 @@ Al finalizar, crea o actualiza el archivo .env en el directorio actual.`,
 
 		// Validar key
 		fmt.Println()
-		fmt.Print("  🔍 Validando API key... ")
+		fmt.Print("  Validando API key... ")
 		if err := validateAPIKey(providerName, apiKey); err != nil {
-			fmt.Println("❌")
-			fmt.Printf("  ⚠  La key no pudo verificarse: %v\n", err)
+			fmt.Println("")
+			fmt.Printf("  La key no pudo verificarse: %v\n", err)
 			fmt.Println("  Puedes continuar de todas formas, pero verifica la key antes de usar medscan.")
 			if !promptYesNo(reader, "¿Continuar de todas formas?", true) {
 				fmt.Println("Configuración cancelada.")
 				return nil
 			}
 		} else {
-			fmt.Println("✅ Key válida")
+			fmt.Println("Key válida")
 		}
 
 		// ── 3. Rutas ────────────────────────────────────────────────────────
@@ -110,7 +110,7 @@ Al finalizar, crea o actualiza el archivo .env en el directorio actual.`,
 		dbDir := filepath.Dir(dbPath)
 		if dbDir != "." && dbDir != "" {
 			if err := os.MkdirAll(dbDir, 0755); err != nil {
-				fmt.Printf("  ⚠  No se pudo crear el directorio %s: %v\n", dbDir, err)
+				fmt.Printf("  No se pudo crear el directorio %s: %v\n", dbDir, err)
 			}
 		}
 
@@ -177,7 +177,7 @@ MEDISCAN_LOG_LEVEL=info
 		// ── Resumen final ───────────────────────────────────────────────────
 		fmt.Println()
 		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-		fmt.Println("✅  medscan configurado correctamente")
+		fmt.Println("medscan configurado correctamente")
 		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 		fmt.Println()
 		fmt.Printf("  Proveedor:   %s\n", providerName)
@@ -185,7 +185,7 @@ MEDISCAN_LOG_LEVEL=info
 		fmt.Printf("  Base datos:  %s\n", dbPath)
 		fmt.Printf("  Blur umbral: %s\n", blurThresholdStr)
 		fmt.Println()
-		fmt.Println("🚀 Próximos pasos:")
+		fmt.Println("Próximos pasos:")
 		fmt.Println()
 		fmt.Println("  Digitalizar una carpeta de documentos:")
 		fmt.Println("    medscan scan /ruta/a/tus/imagenes/")
@@ -219,7 +219,7 @@ func promptRequired(reader *bufio.Reader, question string) string {
 		if val != "" {
 			return val
 		}
-		fmt.Println("  ⚠  Este campo es obligatorio.")
+		fmt.Println("  Este campo es obligatorio.")
 	}
 }
 
@@ -241,7 +241,7 @@ func promptSelect(reader *bufio.Reader, question string, options []string, defau
 				return val
 			}
 		}
-		fmt.Printf("  ⚠  Opción inválida. Elige entre: %s\n", strings.Join(options, ", "))
+		fmt.Printf("  Opción inválida. Elige entre: %s\n", strings.Join(options, ", "))
 	}
 }
 

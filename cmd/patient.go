@@ -28,7 +28,7 @@ var patientListCmd = &cobra.Command{
 		}
 
 		fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-		fmt.Printf("👤 Pacientes registrados (%d)\n", len(patients))
+		fmt.Printf("Pacientes registrados (%d)\n", len(patients))
 		fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 		fmt.Printf("%-4s  %-35s  %-22s  %s\n", "ID", "Nombre", "CURP", "Fecha nac.")
 		fmt.Printf("%-4s  %-35s  %-22s  %s\n", "────", strings.Repeat("─", 35), strings.Repeat("─", 22), "──────────")

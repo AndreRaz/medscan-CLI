@@ -42,17 +42,17 @@ var dbStatsCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-		fmt.Printf("🗄  Base de datos: %s  (%s)\n", dbPath, sizeStr)
+		fmt.Printf("Base de datos: %s  (%s)\n", dbPath, sizeStr)
 		fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-		fmt.Printf("  👤 Pacientes registrados:   %d\n", stats.TotalPacientes)
-		fmt.Printf("  🏥 Visitas totales:          %d\n", stats.TotalVisitas)
-		fmt.Printf("  💊 Tratamientos registrados: %d\n", stats.TotalTratamientos)
-		fmt.Printf("  ⚠  Archivos rechazados:      %d\n", stats.TotalRechazados)
-		fmt.Printf("  ❌ Archivos con error:       %d\n", stats.TotalFallidos)
+		fmt.Printf("  Pacientes registrados:   %d\n", stats.TotalPacientes)
+		fmt.Printf("  Visitas totales:          %d\n", stats.TotalVisitas)
+		fmt.Printf("  Tratamientos registrados: %d\n", stats.TotalTratamientos)
+		fmt.Printf("  Archivos rechazados:      %d\n", stats.TotalRechazados)
+		fmt.Printf("  Archivos con error:       %d\n", stats.TotalFallidos)
 		fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
 
 		if stats.TotalPacientes == 0 {
-			fmt.Println("💡 La base de datos está vacía. Usa 'medscan scan <carpeta>' para digitalizar documentos.")
+			fmt.Println("La base de datos está vacía. Usa 'medscan scan <carpeta>' para digitalizar documentos.")
 		}
 		return nil
 	},
@@ -77,10 +77,10 @@ var dbVisitasCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-		fmt.Printf("🏥 Historial de visitas (últimas %d)\n", len(visitas))
+		fmt.Printf("Historial de visitas (últimas %d)\n", len(visitas))
 		fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 		fmt.Printf("%-4s  %-25s  %-22s  %-10s  %-30s  %s\n",
-			"ID", "Paciente", "CURP", "Fecha", "Diagnóstico", "💊")
+			"ID", "Paciente", "CURP", "Fecha", "Diagnóstico", "")
 		fmt.Printf("%-4s  %-25s  %-22s  %-10s  %-30s  %s\n",
 			strings.Repeat("─", 4),
 			strings.Repeat("─", 25),
@@ -130,12 +130,12 @@ var dbRechazadosCmd = &cobra.Command{
 		}
 
 		if len(rechazados) == 0 {
-			fmt.Println("✅ No hay archivos rechazados.")
+			fmt.Println("No hay archivos rechazados.")
 			return nil
 		}
 
 		fmt.Printf("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-		fmt.Printf("⚠  Archivos rechazados (%d)\n", len(rechazados))
+		fmt.Printf("Archivos rechazados (%d)\n", len(rechazados))
 		fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 		fmt.Printf("%-4s  %-35s  %-10s  %-8s  %s\n", "ID", "Archivo", "Motivo", "Blur", "Fecha")
 		fmt.Printf("%-4s  %-35s  %-10s  %-8s  %s\n",

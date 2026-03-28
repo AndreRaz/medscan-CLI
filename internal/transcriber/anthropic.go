@@ -33,9 +33,9 @@ type anthropicMessage struct {
 }
 
 type anthropicBlock struct {
-	Type   string             `json:"type"`
-	Source *anthropicSource   `json:"source,omitempty"` // para imágenes
-	Text   string             `json:"text,omitempty"`   // para texto
+	Type   string           `json:"type"`
+	Source *anthropicSource `json:"source,omitempty"` // para imágenes
+	Text   string           `json:"text,omitempty"`   // para texto
 }
 
 type anthropicSource struct {

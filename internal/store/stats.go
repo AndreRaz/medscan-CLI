@@ -7,12 +7,12 @@ import (
 
 // DBStats contiene estadísticas globales de la base de datos.
 type DBStats struct {
-	TotalPacientes      int
-	TotalVisitas        int
-	TotalTratamientos   int
-	TotalRechazados     int
-	TotalFallidos       int
-	TamanioBytes        int64
+	TotalPacientes    int
+	TotalVisitas      int
+	TotalTratamientos int
+	TotalRechazados   int
+	TotalFallidos     int
+	TamanioBytes      int64
 }
 
 // GetStats devuelve las estadísticas globales de la base de datos.
@@ -38,15 +38,15 @@ func (db *DB) GetStats() (*DBStats, error) {
 
 // VisitRow representa una fila en la vista de visitas recientes.
 type VisitRow struct {
-	ID             int64
-	PacienteNombre string
-	PacienteCURP   string
-	DoctorNombre   string
-	Fecha          string
-	Diagnostico    string
-	BlurScore      float64
-	ProcesadoEnMs  int64
-	ArchivoOrigen  string
+	ID              int64
+	PacienteNombre  string
+	PacienteCURP    string
+	DoctorNombre    string
+	Fecha           string
+	Diagnostico     string
+	BlurScore       float64
+	ProcesadoEnMs   int64
+	ArchivoOrigen   string
 	NumTratamientos int
 }
 

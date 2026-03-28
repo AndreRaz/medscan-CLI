@@ -51,7 +51,7 @@ Buscar por ID (para pacientes sin CURP, ver IDs con 'db visitas'):
 				fmt.Printf("No se encontraron pacientes con nombre '%s'\n", queryNombre)
 				return nil
 			}
-			fmt.Printf("🔍 %d paciente(s) encontrado(s):\n\n", len(patients))
+			fmt.Printf("%d paciente(s) encontrado(s):\n\n", len(patients))
 			for _, p := range patients {
 				curpDisplay := p.CURP
 				if curpDisplay == "" {
@@ -88,7 +88,7 @@ func printExpediente(exp *parser.Expediente, visitas []parser.Visita, tratamient
 		curpDisplay = "(sin CURP)"
 	}
 	fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-	fmt.Printf("📋 Expediente: %s\n", exp.Paciente.Nombre)
+	fmt.Printf("Expediente: %s\n", exp.Paciente.Nombre)
 	fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 	fmt.Printf("CURP:           %s\n", curpDisplay)
 	fmt.Printf("NSS:            %s\n", exp.Paciente.NSS)

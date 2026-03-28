@@ -387,7 +387,6 @@ func (db *DB) GetExpedienteByID(patientID int64) (*parser.Expediente, []parser.V
 	return exp, visitas, allTratamientos, nil
 }
 
-
 // ListPatients devuelve todos los pacientes ordenados por nombre.
 func (db *DB) ListPatients() ([]Patient, error) {
 	rows, err := db.conn.Query(`SELECT id, nombre, curp, nss, fecha_nacimiento, telefono, domicilio FROM patients ORDER BY nombre`)

@@ -76,7 +76,7 @@ Ejemplos:
 			if err := os.WriteFile(outputFile, jsonBytes, 0644); err != nil {
 				return fmt.Errorf("error escribiendo archivo: %w", err)
 			}
-			fmt.Printf("✅ Expediente exportado a: %s\n", outputFile)
+			fmt.Printf("Expediente exportado a: %s\n", outputFile)
 		} else {
 			fmt.Println(string(jsonBytes))
 		}

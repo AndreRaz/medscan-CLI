@@ -23,7 +23,7 @@ type GeminiTranscriber struct{}
 
 // geminiRequest es la estructura del body enviado a la API de Gemini.
 type geminiRequest struct {
-	Contents        []geminiContent  `json:"contents"`
+	Contents         []geminiContent `json:"contents"`
 	GenerationConfig geminiGenConfig `json:"generationConfig"`
 }
 

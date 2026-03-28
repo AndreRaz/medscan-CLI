@@ -15,8 +15,8 @@ import (
 
 // Flags del comando scan
 var (
-	debugBlur      bool
-	blurThreshold  float64
+	debugBlur     bool
+	blurThreshold float64
 )
 
 var scanCmd = &cobra.Command{
@@ -42,14 +42,14 @@ Al final imprime un resumen: procesados / rechazados / errores / duplicados.`,
 			return fmt.Errorf("la carpeta no existe: %s", folder)
 		}
 
-		fmt.Printf("📂 Escaneando carpeta: %s\n", folder)
+		fmt.Printf("Escaneando carpeta: %s\n", folder)
 
 		// Obtener umbral de blur (flag > env var > default)
 		threshold := getBlurThreshold(blurThreshold)
 		if threshold > 0 {
-			fmt.Printf("🔍 Umbral de borrosidad: %.1f\n", threshold)
+			fmt.Printf("Umbral de borrosidad: %.1f\n", threshold)
 		} else {
-			fmt.Println("⚠  Detección de borrosidad desactivada (MEDISCAN_BLUR_THRESHOLD=0)")
+			fmt.Println("Detección de borrosidad desactivada (MEDISCAN_BLUR_THRESHOLD=0)")
 		}
 
 		// Obtener archivos válidos de la carpeta
@@ -71,7 +71,7 @@ Al final imprime un resumen: procesados / rechazados / errores / duplicados.`,
 			return nil
 		}
 
-		fmt.Printf("📄 %d imagen(es) encontrada(s) para procesar\n\n", len(files))
+		fmt.Printf("%d imagen(es) encontrada(s) para procesar\n\n", len(files))
 
 		t := transcriber.New()
 
@@ -104,15 +104,15 @@ Al final imprime un resumen: procesados / rechazados / errores / duplicados.`,
 			// --- Paso 2: Detección de borrosidad ---
 			blurScore, err := imageproc.BlurScore(file.Path)
 			if err != nil {
-				fmt.Printf("  ⚠  No se pudo calcular blur score: %v\n", err)
+				fmt.Printf("  No se pudo calcular blur score: %v\n", err)
 			}
 
 			if debugBlur {
-				fmt.Printf("  🔍 Blur score: %.2f\n", blurScore)
+				fmt.Printf("  Blur score: %.2f\n", blurScore)
 			}
 
 			if threshold > 0 && blurScore < threshold {
-				fmt.Printf("  ⚠  Imagen borrosa (score: %.1f < %.1f). Tómela de nuevo.\n", blurScore, threshold)
+				fmt.Printf("  Imagen borrosa (score: %.1f < %.1f). Tómela de nuevo.\n", blurScore, threshold)
 				if err := db.SaveRejectedFile(file.Path, file.Hash, "blur", blurScore); err != nil {
 					logDebug("Error guardando rechazo blur: %v", err)
 				}
@@ -128,7 +128,7 @@ Al final imprime un resumen: procesados / rechazados / errores / duplicados.`,
 			// --- Paso 3: Pre-procesamiento local ---
 			processedPath, err := imageproc.Preprocess(file.Path)
 			if err != nil {
-				fmt.Printf("  ❌ Error en pre-procesamiento: %v\n", err)
+				fmt.Printf("  Error en pre-procesamiento: %v\n", err)
 				if dbErr := db.SaveFailedFile(file.Path, file.Hash, "preprocesamiento: "+err.Error()); dbErr != nil {
 					logDebug("Error guardando failed_file: %v", dbErr)
 				}
@@ -144,7 +144,7 @@ Al final imprime un resumen: procesados / rechazados / errores / duplicados.`,
 			fmt.Printf(" [enviando a LLM...]")
 			exp, err := t.Transcribe(processedPath)
 			if err != nil {
-				fmt.Printf("\n  ❌ Error en transcripción: %v\n", err)
+				fmt.Printf("\n  Error en transcripción: %v\n", err)
 				if dbErr := db.SaveFailedFile(file.Path, file.Hash, "transcripción: "+err.Error()); dbErr != nil {
 					logDebug("Error guardando failed_file: %v", dbErr)
 				}
@@ -160,7 +160,7 @@ Al final imprime un resumen: procesados / rechazados / errores / duplicados.`,
 
 			// --- Paso 5: Guardar en DB ---
 			if err := db.SaveExpediente(exp, file.Hash); err != nil {
-				fmt.Printf("\n  ❌ Error guardando en DB: %v\n", err)
+				fmt.Printf("\n  Error guardando en DB: %v\n", err)
 				if dbErr := db.SaveFailedFile(file.Path, file.Hash, "db: "+err.Error()); dbErr != nil {
 					logDebug("Error guardando failed_file: %v", dbErr)
 				}
@@ -168,13 +168,13 @@ Al final imprime un resumen: procesados / rechazados / errores / duplicados.`,
 				continue
 			}
 
-			fmt.Printf(" ✅ (%dms)\n", elapsed)
+			fmt.Printf(" (%dms)\n", elapsed)
 
 			// Mostrar paciente extraído (sin datos sensibles en logs normales)
 			if exp.Paciente.Nombre != "" {
-				fmt.Printf("  👤 Paciente: %s\n", exp.Paciente.Nombre)
+				fmt.Printf("  Paciente: %s\n", exp.Paciente.Nombre)
 			} else {
-				fmt.Printf("  ⚠  No se pudo extraer nombre del paciente [sin_datos]\n")
+				fmt.Printf("  No se pudo extraer nombre del paciente [sin_datos]\n")
 			}
 
 			countProcessed++
@@ -182,13 +182,13 @@ Al final imprime un resumen: procesados / rechazados / errores / duplicados.`,
 
 		// --- Resumen final ---
 		fmt.Printf("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-		fmt.Printf("📊 Resumen del scan\n")
+		fmt.Printf("Resumen del scan\n")
 		fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-		fmt.Printf("  ✅ Procesados:           %d\n", countProcessed)
-		fmt.Printf("  🔁 Duplicados (omitidos): %d\n", countDuplicates)
-		fmt.Printf("  ⚠  Rechazados por blur:   %d\n", countBlurRej)
+		fmt.Printf("  Procesados:           %d\n", countProcessed)
+		fmt.Printf("  Duplicados (omitidos): %d\n", countDuplicates)
+		fmt.Printf("  Rechazados por blur:   %d\n", countBlurRej)
 		fmt.Printf("  ⛔ Formato/tamaño:        %d\n", countFormatRej)
-		fmt.Printf("  ❌ Errores de API/DB:     %d\n", countAPIError)
+		fmt.Printf("  Errores de API/DB:     %d\n", countAPIError)
 		fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 		fmt.Printf("  Total revisados: %d\n", len(files)+len(formatRejected))
 

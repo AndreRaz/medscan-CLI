@@ -50,7 +50,7 @@ type RejectedFile struct {
 	ID        int64
 	FilePath  string
 	FileHash  string
-	Motivo    string  // "blur", "formato", "tamaño", "corrupto"
+	Motivo    string // "blur", "formato", "tamaño", "corrupto"
 	BlurScore float64
 	ScannedAt string
 }
