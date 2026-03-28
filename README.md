@@ -8,6 +8,14 @@
 
 ---
 
+<div align="center">
+  <img src="assets/tui_preview.png" alt="medscan TUI Interface" width="700">
+  <br />
+  <p><i>Interfaz gráfica de Terminal (TUI) incorporada: Exploración interactiva y digitalización en vivo</i></p>
+</div>
+
+---
+
 ## Características Principales
 
 - **Visión por IA avanzada:** Digitaliza texto médico (incluyendo letra difícil), diagnósticos y recetas utilizando Google Gemini 2.5 Flash o Anthropic Claude.
