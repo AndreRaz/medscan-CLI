@@ -9,7 +9,7 @@
 ---
 
 <div align="center">
-  <img src="assets/tui_preview.png" alt="medscan TUI Interface" width="700">
+  <img src="assets/tui_screenshot.png" alt="medscan TUI Interface" width="700">
   <br />
   <p><i>Interfaz gráfica de Terminal (TUI) incorporada: Exploración interactiva y digitalización en vivo</i></p>
 </div>
