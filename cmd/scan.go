@@ -3,13 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
-	"time"
 
 	"github.com/spf13/cobra"
-	"medscan/internal/imageproc"
-	"medscan/internal/scanner"
+	"medscan/internal/pipeline"
 	"medscan/internal/transcriber"
 )
 
@@ -52,132 +49,73 @@ Al final imprime un resumen: procesados / rechazados / errores / duplicados.`,
 			fmt.Println("Detección de borrosidad desactivada (MEDISCAN_BLUR_THRESHOLD=0)")
 		}
 
-		// Obtener archivos válidos de la carpeta
-		files, formatRejected, err := scanner.ScanFolder(folder)
-		if err != nil {
-			return fmt.Errorf("error al escanear carpeta: %w", err)
-		}
-
-		// Registrar archivos con formato/tamaño inválido
-		for _, rej := range formatRejected {
-			fmt.Printf("  ⛔ %s → %s\n", filepath.Base(rej.Path), rej.Reason)
-			if dbErr := db.SaveRejectedFile(rej.Path, "", "formato", 0); dbErr != nil {
-				logDebug("No se pudo registrar rechazo: %v", dbErr)
-			}
-		}
-
-		if len(files) == 0 {
-			fmt.Println("No se encontraron imágenes válidas en la carpeta.")
-			return nil
-		}
-
-		fmt.Printf("%d imagen(es) encontrada(s) para procesar\n\n", len(files))
-
 		t := transcriber.New()
 
-		// Contadores para el resumen final
+		cfg := pipeline.Config{
+			Folder:        folder,
+			BlurThreshold: threshold,
+			DebugBlur:     debugBlur,
+			Db:            db, // global en cmd/root.go
+			Transcriber:   t,
+		}
+
+		events := make(chan pipeline.ScanEvent)
+		go func() {
+			_, err := pipeline.RunScanner(cfg, events)
+			if err != nil {
+				fmt.Printf("Error running scanner: %s\n", err.Error())
+			}
+		}()
+
 		var (
 			countProcessed  int
 			countDuplicates int
 			countBlurRej    int
 			countAPIError   int
-			countFormatRej  = len(formatRejected)
+			countFormatRej  int
+			totalFiles      int
 		)
 
-		for i, file := range files {
-			startTime := time.Now()
-			baseName := filepath.Base(file.Path)
-
-			fmt.Printf("[%d/%d] %s\n", i+1, len(files), baseName)
-
-			// --- Paso 1: Deduplicación por hash ---
-			exists, err := db.HashExists(file.Hash)
-			if err != nil {
-				logDebug("Error verificando hash: %v", err)
+		for evt := range events {
+			if totalFiles == 0 && evt.TotalFiles > 0 {
+				totalFiles = evt.TotalFiles
 			}
-			if exists {
+
+			if evt.CurrentFile == 0 && evt.Status == "Rechazado (Formato/Tamaño)" {
+				fmt.Printf("  ⛔ %s → %s\n", evt.FileName, evt.ErrorMessage)
+				countFormatRej++
+				continue
+			}
+
+			fmt.Printf("[%d/%d] %s\n", evt.CurrentFile, evt.TotalFiles, evt.FileName)
+
+			if debugBlur && evt.BlurScore > 0 {
+				fmt.Printf("  Blur score: %.2f\n", evt.BlurScore)
+			} else if !debugBlur && threshold > 0 && evt.BlurScore > 0 {
+				fmt.Printf("  [blur:%.1f]", evt.BlurScore)
+			}
+
+			switch evt.Status {
+			case "Duplicado (Omitido)":
 				fmt.Printf("  ✓ Duplicado (SHA-256 ya procesado), omitiendo\n")
 				countDuplicates++
-				continue
-			}
-
-			// --- Paso 2: Detección de borrosidad ---
-			blurScore, err := imageproc.BlurScore(file.Path)
-			if err != nil {
-				fmt.Printf("  No se pudo calcular blur score: %v\n", err)
-			}
-
-			if debugBlur {
-				fmt.Printf("  Blur score: %.2f\n", blurScore)
-			}
-
-			if threshold > 0 && blurScore < threshold {
-				fmt.Printf("  Imagen borrosa (score: %.1f < %.1f). Tómela de nuevo.\n", blurScore, threshold)
-				if err := db.SaveRejectedFile(file.Path, file.Hash, "blur", blurScore); err != nil {
-					logDebug("Error guardando rechazo blur: %v", err)
-				}
+			case "Rechazado (Borrosa)":
+				fmt.Printf("  Imagen borrosa (score: %.1f < %.1f). Tómela de nuevo.\n", evt.BlurScore, threshold)
 				countBlurRej++
-				continue
-			}
-
-			// Mostrar estado de blur si pasó
-			if !debugBlur && threshold > 0 {
-				fmt.Printf("  [blur:%.1f]", blurScore)
-			}
-
-			// --- Paso 3: Pre-procesamiento local ---
-			processedPath, err := imageproc.Preprocess(file.Path)
-			if err != nil {
-				fmt.Printf("  Error en pre-procesamiento: %v\n", err)
-				if dbErr := db.SaveFailedFile(file.Path, file.Hash, "preprocesamiento: "+err.Error()); dbErr != nil {
-					logDebug("Error guardando failed_file: %v", dbErr)
-				}
+			case "Error (Pre-procesamiento)":
+				fmt.Printf("  Error en pre-procesamiento: %v\n", evt.ErrorMessage)
 				countAPIError++
-				continue
-			}
-			defer os.Remove(processedPath) // limpiar siempre — ADR-006
-
-			// Obtener ancho resultante para el log
-			fmt.Printf(" [procesado]")
-
-			// --- Paso 4: Transcripción con LLM ---
-			fmt.Printf(" [enviando a LLM...]")
-			exp, err := t.Transcribe(processedPath)
-			if err != nil {
-				fmt.Printf("\n  Error en transcripción: %v\n", err)
-				if dbErr := db.SaveFailedFile(file.Path, file.Hash, "transcripción: "+err.Error()); dbErr != nil {
-					logDebug("Error guardando failed_file: %v", dbErr)
-				}
+			case "Error (API Transcripción)":
+				fmt.Printf("\n  Error en transcripción: %v\n", evt.ErrorMessage)
 				countAPIError++
-				continue
-			}
-
-			// Completar metadatos de la visita
-			elapsed := time.Since(startTime).Milliseconds()
-			exp.Visita.ArchivoOrigen = file.Path
-			exp.Visita.BlurScore = blurScore
-			exp.Visita.ProcesadoEnMs = elapsed
-
-			// --- Paso 5: Guardar en DB ---
-			if err := db.SaveExpediente(exp, file.Hash); err != nil {
-				fmt.Printf("\n  Error guardando en DB: %v\n", err)
-				if dbErr := db.SaveFailedFile(file.Path, file.Hash, "db: "+err.Error()); dbErr != nil {
-					logDebug("Error guardando failed_file: %v", dbErr)
-				}
+			case "Error (Base de Datos)":
+				fmt.Printf("\n  Error guardando en DB: %v\n", evt.ErrorMessage)
 				countAPIError++
-				continue
+			default:
+				// Asumimos Procesado
+				fmt.Printf("  ✓ %s\n", evt.Status)
+				countProcessed++
 			}
-
-			fmt.Printf(" (%dms)\n", elapsed)
-
-			// Mostrar paciente extraído (sin datos sensibles en logs normales)
-			if exp.Paciente.Nombre != "" {
-				fmt.Printf("  Paciente: %s\n", exp.Paciente.Nombre)
-			} else {
-				fmt.Printf("  No se pudo extraer nombre del paciente [sin_datos]\n")
-			}
-
-			countProcessed++
 		}
 
 		// --- Resumen final ---
@@ -190,7 +128,7 @@ Al final imprime un resumen: procesados / rechazados / errores / duplicados.`,
 		fmt.Printf("  ⛔ Formato/tamaño:        %d\n", countFormatRej)
 		fmt.Printf("  Errores de API/DB:     %d\n", countAPIError)
 		fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-		fmt.Printf("  Total revisados: %d\n", len(files)+len(formatRejected))
+		fmt.Printf("  Total revisados: %d\n", totalFiles)
 
 		return nil
 	},

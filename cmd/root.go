@@ -7,6 +7,8 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"medscan/internal/store"
+	"medscan/internal/transcriber"
+	"medscan/internal/tui"
 )
 
 var (
@@ -26,6 +28,11 @@ y los persiste en una base de datos SQLite local y consultable.
 Proveedores de LLM:
   MEDISCAN_PROVIDER=gemini    → Google Gemini 2.5 Flash (gratis, para desarrollo)
   MEDISCAN_PROVIDER=anthropic → Anthropic Claude (precisión alta, para producción)`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		llm := transcriber.New()
+		app := tui.NewApp(db, llm)
+		return app.Run()
+	},
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return initDB()
 	},
