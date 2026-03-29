@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger build on tags starting with v (e.g. v1.0.0)
+
+jobs:
+  build:
+    name: Build for ${{ matrix.goos }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            arch: amd64
+          - os: ubuntu-latest
+            goos: linux
+            arch: arm64
+          - os: macos-13
+            goos: darwin
+            arch: amd64
+          - os: macos-14
+            goos: darwin
+            arch: arm64
+          - os: windows-latest
+            goos: windows
+            arch: amd64
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          
+      - name: Pre-requisites for Linux ARM64
+        if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CXX=aarch64-linux-gnu-g++" >> $GITHUB_ENV
+
+      - name: Build Binary
+        env:
+          CGO_ENABLED: 1
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          # Use .exe for Windows
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            EXT=".exe"
+          else
+            EXT=""
+          fi
+          
+          mkdir -p dist
+          # Build passing the git tag as Version via ldflags
+          go build -ldflags="-s -w -X main.Version=${{ github.ref_name }}" -o dist/medscan-${{ matrix.goos }}-${{ matrix.arch }}$EXT .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: medscan-${{ matrix.goos }}-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to create the release
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

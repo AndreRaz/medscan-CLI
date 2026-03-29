@@ -19,3 +19,6 @@ vendor/
 .idea/
 .vscode/
 *.swp
+
+# Build artifacts
+dist/
