@@ -29,6 +29,17 @@ Proveedores de LLM:
   MEDISCAN_PROVIDER=gemini    → Google Gemini 2.5 Flash (gratis, para desarrollo)
   MEDISCAN_PROVIDER=anthropic → Anthropic Claude (precisión alta, para producción)`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Si es la primera vez que lo abren y no hay API keys configuradas,
+		// lanzamos automáticamente el asistente de configuración.
+		if os.Getenv("MEDISCAN_PROVIDER") == "" || (os.Getenv("GEMINI_API_KEY") == "" && os.Getenv("ANTHROPIC_API_KEY") == "") {
+			fmt.Println("No se detectó configuración inicial. Iniciando asistente...")
+			if err := setupCmd.RunE(cmd, args); err != nil {
+				return err
+			}
+			// Cargar el recién creado .env para que la sesión actual lo tenga
+			_ = godotenv.Load()
+		}
+
 		llm := transcriber.New()
 		app := tui.NewApp(db, llm)
 		return app.Run()
