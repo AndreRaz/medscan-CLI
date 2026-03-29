@@ -105,9 +105,16 @@ func (a *App) refreshPatients() {
 	}
 
 	// Títulos de columnas
-	table.SetCell(0, 0, tview.NewTableCell("ID").SetTextColor(tcell.ColorYellow).SetSelectable(false))
-	table.SetCell(0, 1, tview.NewTableCell("Nombre").SetTextColor(tcell.ColorYellow).SetSelectable(false))
-	table.SetCell(0, 2, tview.NewTableCell("CURP").SetTextColor(tcell.ColorYellow).SetSelectable(false))
+	table.SetCell(0, 0, tview.NewTableCell("Nombre").SetTextColor(tcell.ColorMediumOrchid).SetSelectable(false))
+	table.SetCell(0, 1, tview.NewTableCell("CURP").SetTextColor(tcell.ColorMediumOrchid).SetSelectable(false))
+	table.SetCell(0, 2, tview.NewTableCell("Visitas").SetTextColor(tcell.ColorMediumOrchid).SetSelectable(false))
+
+	if len(patients) == 0 {
+		table.SetCell(1, 0, tview.NewTableCell("  Sin pacientes registrados. Usá Digitalizar para empezar.").
+			SetTextColor(tcell.ColorDimGray).
+			SetSelectable(false))
+		return
+	}
 
 	for i, p := range patients {
 		curp := p.CURP
@@ -115,13 +122,13 @@ func (a *App) refreshPatients() {
 			curp = "N/A"
 		}
 
-		cId := tview.NewTableCell(fmt.Sprintf("%d", p.ID)).SetReference(p.ID)
-		cNom := tview.NewTableCell(p.Nombre)
+		cNom := tview.NewTableCell(p.Nombre).SetReference(p.ID)
 		cCurp := tview.NewTableCell(curp)
+		cVisits := tview.NewTableCell(fmt.Sprintf("%d", p.VisitCount)).SetTextColor(tcell.ColorDarkCyan)
 
-		table.SetCell(i+1, 0, cId)
-		table.SetCell(i+1, 1, cNom)
-		table.SetCell(i+1, 2, cCurp)
+		table.SetCell(i+1, 0, cNom)
+		table.SetCell(i+1, 1, cCurp)
+		table.SetCell(i+1, 2, cVisits)
 	}
 
 	// Reiniciar selección al primer paciente si existe

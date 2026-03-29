@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -165,13 +166,119 @@ var dbRechazadosCmd = &cobra.Command{
 	},
 }
 
+var dbExportMove bool
+
+// dbExportCmd copia o mueve la base de datos a la ruta indicada.
+var dbExportCmd = &cobra.Command{
+	Use:   "export <ruta-destino>",
+	Short: "Exporta (copia o mueve) la base de datos a otra ubicación",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		src := store.GetDBPath()
+		src, _ = filepath.Abs(src)
+
+		dest := args[0]
+		if strings.HasPrefix(dest, "~/") {
+			home, _ := os.UserHomeDir()
+			dest = filepath.Join(home, dest[2:])
+		}
+		dest, _ = filepath.Abs(dest)
+
+		// Comprobar que la DB de origen existe
+		if _, err := os.Stat(src); os.IsNotExist(err) {
+			return fmt.Errorf("no se encontró la base de datos en: %s", src)
+		}
+
+		// Crear directorio destino si no existe
+		if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
+			return fmt.Errorf("no se pudo crear el directorio de destino: %w", err)
+		}
+
+		// Backup si el destino ya existe
+		if _, err := os.Stat(dest); err == nil {
+			bak := dest + ".bak"
+			if errRen := os.Rename(dest, bak); errRen == nil {
+				fmt.Printf("Archivo existente guardado como: %s\n", bak)
+			}
+		}
+
+		// Copiar
+		if err := cliCopyFile(src, dest); err != nil {
+			return fmt.Errorf("error copiando el archivo: %w", err)
+		}
+
+		if dbExportMove {
+			// Eliminar original y actualizar .env
+			if err := os.Remove(src); err != nil {
+				fmt.Printf("Advertencia: no se pudo eliminar el archivo original (%s): %v\n", src, err)
+			}
+			if err := cliUpdateEnvDBPath(dest); err != nil {
+				fmt.Printf("Advertencia: no se pudo actualizar .env: %v\n", err)
+				fmt.Printf("Actualiza manualmente: MEDISCAN_DB_PATH=%s\n", dest)
+			}
+			fmt.Printf("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+			fmt.Printf("Base de datos movida correctamente\n")
+			fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+			fmt.Printf("  Nueva ubicación: %s\n\n", dest)
+			fmt.Println("Reinicia medscan para que los cambios surtan efecto.")
+		} else {
+			fmt.Printf("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+			fmt.Printf("Copia de base de datos creada\n")
+			fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+			fmt.Printf("  Origen:  %s\n", src)
+			fmt.Printf("  Destino: %s\n\n", dest)
+		}
+		return nil
+	},
+}
+
+// cliCopyFile copia src → dst.
+func cliCopyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	return err
+}
+
+// cliUpdateEnvDBPath actualiza MEDISCAN_DB_PATH en el .env.
+func cliUpdateEnvDBPath(newPath string) error {
+	envFile := ".env"
+	content, err := os.ReadFile(envFile)
+	if err != nil {
+		return os.WriteFile(envFile, []byte("MEDISCAN_DB_PATH="+newPath+"\n"), 0600)
+	}
+	lines := strings.Split(string(content), "\n")
+	found := false
+	for i, line := range lines {
+		if strings.HasPrefix(line, "MEDISCAN_DB_PATH=") {
+			lines[i] = "MEDISCAN_DB_PATH=" + newPath
+			found = true
+			break
+		}
+	}
+	if !found {
+		lines = append(lines, "MEDISCAN_DB_PATH="+newPath)
+	}
+	return os.WriteFile(envFile, []byte(strings.Join(lines, "\n")), 0600)
+}
+
 func init() {
 	dbVisitasCmd.Flags().IntVar(&dbVisitasLimit, "limit", 50, "Número máximo de visitas a mostrar")
 	dbRechazadosCmd.Flags().IntVar(&dbRechazadosLimit, "limit", 50, "Número máximo de registros a mostrar")
+	dbExportCmd.Flags().BoolVar(&dbExportMove, "move", false, "Mover la DB (elimina el original y actualiza .env)")
 
 	dbCmd.AddCommand(dbStatsCmd)
 	dbCmd.AddCommand(dbVisitasCmd)
 	dbCmd.AddCommand(dbRechazadosCmd)
+	dbCmd.AddCommand(dbExportCmd)
 }
 
 // formatBytes convierte bytes a una representación legible (KB, MB).
@@ -185,3 +292,5 @@ func formatBytes(b int64) string {
 		return fmt.Sprintf("%d B", b)
 	}
 }
+
+

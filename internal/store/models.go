@@ -9,6 +9,7 @@ type Patient struct {
 	FechaNacimiento string
 	Telefono        string
 	Domicilio       string
+	VisitCount      int
 }
 
 // Doctor representa un médico en la base de datos.

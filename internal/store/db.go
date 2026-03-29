@@ -387,9 +387,16 @@ func (db *DB) GetExpedienteByID(patientID int64) (*parser.Expediente, []parser.V
 	return exp, visitas, allTratamientos, nil
 }
 
-// ListPatients devuelve todos los pacientes ordenados por nombre.
+// ListPatients devuelve todos los pacientes ordenados por nombre, con conteo de visitas.
 func (db *DB) ListPatients() ([]Patient, error) {
-	rows, err := db.conn.Query(`SELECT id, nombre, curp, nss, fecha_nacimiento, telefono, domicilio FROM patients ORDER BY nombre`)
+	rows, err := db.conn.Query(`
+		SELECT p.id, p.nombre, p.curp, p.nss, p.fecha_nacimiento, p.telefono, p.domicilio,
+		       COUNT(v.id) as visit_count
+		FROM patients p
+		LEFT JOIN visits v ON v.patient_id = p.id
+		GROUP BY p.id
+		ORDER BY p.nombre
+	`)
 	if err != nil {
 		return nil, err
 	}
@@ -398,7 +405,7 @@ func (db *DB) ListPatients() ([]Patient, error) {
 	var patients []Patient
 	for rows.Next() {
 		var p Patient
-		if err := rows.Scan(&p.ID, &p.Nombre, &p.CURP, &p.NSS, &p.FechaNacimiento, &p.Telefono, &p.Domicilio); err != nil {
+		if err := rows.Scan(&p.ID, &p.Nombre, &p.CURP, &p.NSS, &p.FechaNacimiento, &p.Telefono, &p.Domicilio, &p.VisitCount); err != nil {
 			return nil, err
 		}
 		patients = append(patients, p)
