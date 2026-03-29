@@ -66,6 +66,10 @@ func init() {
 	// Cargar .env si existe (silencioso si no existe)
 	_ = godotenv.Load()
 
+	// Desactivar el bloqueo de doble clic de Windows en Cobra.
+	// Esto permite a los usuarios ejecutar la TUI dando doble clic al .exe
+	cobra.MousetrapHelpText = ""
+
 	rootCmd.AddCommand(scanCmd)
 	rootCmd.AddCommand(queryCmd)
 	rootCmd.AddCommand(patientCmd)
