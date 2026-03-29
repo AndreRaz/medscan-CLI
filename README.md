@@ -1,39 +1,106 @@
 # MEDSCAN
 
-`medscan` es una utilidad de línea de comandos (CLI) en Go para digitalizar expedientes médicos físicos (papel) y convertirlos al instante en un formato estructurado JSON. Utiliza Modelos de Lenguaje (LLMs) con capacidad de visión y persistencia local en SQLite.
+`medscan` es una utilidad profesional de linea de comandos (CLI) e interfaz grafica de terminal (TUI) escrita en Go. Su proposito principal es la digitalizacion precisa de expedientes medicos fisicos (en papel), convirtiendolos de manera instantanea en formatos estructurados (JSON y bases de datos relacionales).
 
-![medscan banner](https://img.shields.io/badge/go-1.22+-00ADD8.svg?logo=go)
-![sqlite](https://img.shields.io/badge/sqlite-local-blue.svg)
-![AI Vision](https://img.shields.io/badge/AI_Vision-Gemini%20%7C%20Claude-orange.svg)
-
----
+El sistema se apoya en modelos avanzados de Inteligencia Artificial con capacidad de vision computacional y persiste la informacion utilizando una arquitectura de base de datos local embebida.
 
 <div align="center">
-  <img src="assets/tui_screenshot.png" alt="medscan TUI Interface" width="700">
+  <img src="assets/tui_screenshot.png" alt="medscan TUI Interface" width="800">
   <br />
-  <p><i>Interfaz gráfica de Terminal (TUI) incorporada: Exploración interactiva y digitalización en vivo</i></p>
+  <p><i>Interfaz Grafica del Panel de Control Principal de MEDSCAN</i></p>
 </div>
 
 ---
 
-## Características Principales
+## Caracteristicas Principales
 
-- **Visión por IA avanzada:** Digitaliza texto médico (incluyendo letra difícil), diagnósticos y recetas utilizando Google Gemini 2.5 Flash o Anthropic Claude.
-- **Configuración rápida (`setup`):** Configuración automática e interactiva para evitar la configuración manual de archivos y rutas.
-- **Pre-procesamiento dinámico local:** Mejora del contraste, conversión a escala de grises y recorte dinámico de las imágenes para optimizar la lectura y reducir el consumo de tokens.
-- **Detección de imágenes borrosas:** Calcula la varianza del Laplaciano antes de consumir cuota de la API. Las fotografías ilegibles se rechazan de manera instantánea.
-- **Base de datos local:** Almacena todos los expedientes, visitas e historiales en una base de datos local SQLite (`mediscan.db`), eliminando la necesidad de infraestructura de base de datos externa.
-- **Deduplicación de archivos:** Evita el procesamiento duplicado del mismo archivo mediante la validación de su firma SHA-256.
+- **Tablero TUI Interactivo:** Visualizacion avanzada con controles navegables por teclado o raton. Incluye estadisticas en tiempo real, modulos maestro-detalle para pacientes y logs dinamicos.
+- **Vision por Inteligencia Artificial:** Integracion nativa con Google Gemini y Anthropic Claude para transcripcion sofisticada, lectura de manuscritos medicos y clasificacion de recetas.
+- **Deteccion de Imagenes Borrosas:** Evaluacion previa de calidad de imagen (mediante el algoritmo de Varianza del Laplaciano implementado en Go) para rechazar fotos desenfocadas, evitando el uso innecesario de cuota de red y de API.
+- **Preprocesamiento en Entorno Local:** Mejoramiento de contraste automatizado, conversion a escala de grises limitando los umbrales maximos de anchura, logrando alta fidelidad.
+- **Base de Datos Embebida Autosuficiente:** Persistencia local garantizada mediante SQLite, resuelta en un solo archivo binario. Olvidese de instalaciones adicionales o configuraciones de servidores de bases de datos complejos.
 
 ---
 
-## Instalación y Uso
+## Instalacion y Despliegue (Guia Multiplataforma)
 
-### 1. Obtener el binario
+La manera mas eficiente y segura de utilizar la herramienta en cualquier sistema operativo es haciendo uso de los binarios precompilados disponibles en la seccion **Releases** de este repositorio. **No se requiere instalar Go.**
 
-Para un despliegue directo sin instalar el entorno de Go, se recomienda descargar el binario desde la sección de **Releases** en GitHub y asignarle permisos de ejecución.
+### 1. Obtencion del Archivo Ejecutable
 
-Alternativamente, si el entorno de Go está configurado, la compilación desde el código fuente se realiza ejecutando los siguientes comandos:
+Navegue a la pagina de **Releases** y localice el ejecutable correspondiente a su plataforma.
+
+#### Para Usuarios de Microsoft Windows (64 bits)
+1. Descargue el archivo denominado `medscan-windows-amd64.exe`.
+2. Renombre el archivo simplemente a `medscan.exe` para mayor comodidad.
+3. Abra su linea de comandos (CMD o PowerShell) en el directorio de la descarga.
+4. Continue al paso de configuracion inicial.
+
+#### Para Usuarios de macOS (Apple)
+1. Descargue `medscan-darwin-arm64` (si su equipo cuenta con procesadores de la serie M1/M2/M3) o bien `medscan-darwin-amd64` (si su equipo utiliza procesador Intel).
+2. Renombre el archivo descargado a `medscan`.
+3. Abra la aplicacion Terminal y ubique el archivo en el directorio correspondiente.
+4. Otorgue los permisos necesarios ejecutando:
+   ```bash
+   chmod +x ./medscan
+   ```
+*(Nota para macOS: Si la ejecucion es bloqueada inicialmente por motivos de seguridad, dirijase a Configuracion del Sistema > Privacidad y Seguridad, y autorice la aplicacion).*
+
+#### Para Usuarios de Linux (Distribuciones derivadas de Debian, Red Hat, Arch, etc.)
+1. Descargue el archivo `medscan-linux-amd64` (para plataformas convencionales Intel/AMD) o `medscan-linux-arm64` (servidores y dispositivos ARM).
+2. Renombrelo a un estandar comodo, como `medscan`.
+3. Abra su emulador de terminal favorito y posicionece en el archivo.
+4. Asigne permisos de ejecucion:
+   ```bash
+   chmod +x ./medscan
+   ```
+
+### 2. Configuracion Inicial Asistida
+
+Para simplificar su utilizacion por primera vez, `medscan` incluye su propia herramienta de parametrizacion inteligente. Ejecute en su consola:
+
+```bash
+# En macOS o Linux:
+./medscan setup
+
+# En Windows:
+.\medscan.exe setup
+```
+
+El asistente interactivo lo llevara de la mano para establecer:
+1. Una llave de activacion (API Key) sin costo de los modelos disponibles.
+2. La ruta local preferida donde residira su base de datos.
+3. La generacion de un archivo de contexto local (`.env`).
+
+### 3. Ejecucion de Tareas Principales (CLI y TUI)
+
+`medscan` posee una gama de comandos dedicados para procesar la reporteria en sus expedientes medicos:
+
+**Apertura del Panel Interactivo (Recomendado):**
+Inicie directamente el sistema exploratorio y digitalizador:
+```bash
+./medscan
+```
+
+**Escaneo Silencioso / de Lotes:**
+Para inyectar lotes directos de fotografias de historiales medicos en carpetas:
+```bash
+./medscan scan ./docs/
+```
+
+**Consulta de Pacientes y Estadisticas:**
+Para revisar los volumenes de actividad de pacientes y encontrar coincidencias o errores en subidas pasadas:
+```bash
+./medscan patient list
+./medscan query NUMERODECURP123
+./medscan db stats
+```
+
+---
+
+## Compilacion desde el Codigo Fuente
+
+Si usted cuenta con experiencia como desarrollador y dispone del compilador Go (`v1.22+`), el entorno de construccion esta preparado.
 
 ```bash
 git clone https://github.com/AndreRaz/medscan-CLI.git
@@ -41,76 +108,4 @@ cd medscan-CLI
 make build
 ```
 
-### 2. Configurar la API Key
-
-El sistema incluye un asistente interactivo para simplificar el proceso de configuración inicial:
-
-```bash
-./medscan setup
-```
-El asistente presentará los siguientes pasos:
-1. Instrucciones para generar una API Key en [aistudio.google.com](https://aistudio.google.com/) de forma gratuita.
-2. Definición de la ruta para el archivo de la base de datos (por defecto `./mediscan.db`).
-3. Generación automática del archivo de entorno local `.env`.
-
-### 3. Ejecutar el escáner de documentos
-
-Colocar las imágenes de los documentos médicos (.jpg, .png) en un directorio específico y ejecutar el escaneo:
-
-```bash
-./medscan scan ./docs/
-```
-
-### 4. Consultar expedientes y registros
-
-Los datos guardados en la base local pueden ser consultados mediante la CLI:
-
-```bash
-# Listar todos los pacientes registrados:
-./medscan patient list
-
-# Mostrar el historial completo y visitas médicas de un paciente mediante su CURP:
-./medscan query GACM850101HMCRLS09
-
-# Buscar un paciente por su nombre (útil para obtener el ID de consulta si no tiene CURP):
-./medscan query --nombre "Filomena"
-
-# Exportar un expediente JSON a disco (soporta el uso del identificador numérico interno --id):
-./medscan export --id 2 -o paciente.json
-```
-
----
-
-## Visor de Base de Datos Local
-
-`medscan` integra herramientas para diagnosticar el estado del almacenamiento local:
-
-```bash
-./medscan db stats       # Estadísticas generales (volumen de pacientes, tamaño del archivo, errores)
-./medscan db visitas     # Muestra una tabla con el registro de las visitas médicas recientes
-./medscan db rechazados  # Lista los archivos descartados durante el escaneo y el motivo (ej. borrosidad)
-```
-
----
-
-## Configuración Manual y Variables de Entorno
-
-Para uso en integraciones continuas (CI/CD) o despliegues automatizados, es posible crear un archivo `.env` manual usando `.env.example` como plantilla:
-
-| Variable | Descripción | Valor por defecto |
-|----------|-------------|---------|
-| `MEDISCAN_PROVIDER` | Proveedor seleccionado: `gemini` o `anthropic` | `anthropic` |
-| `GEMINI_API_KEY` | Llave de autenticación para Google AI Studio | - |
-| `MEDISCAN_DB_PATH` | Ruta (absoluta o relativa) al archivo SQLite | `./mediscan.db` |
-| `MEDISCAN_BLUR_THRESHOLD` | Límite de varianza aceptable para considerar la imagen nítida | `100.0` |
-| `MEDISCAN_MAX_WIDTH` | Ancho máximo de preprocesamiento | `1200` |
-
----
-
-## Arquitectura y Decisiones de Diseño
-
-Los detalles técnicos completos se encuentran en la documentación del sistema (PRD).
-Los aspectos fundamentales de la arquitectura incluyen:
-- Uso de **`disintegration/imaging`** para realizar transformaciones de imagen estándar y preprocesamiento sin recurrir a dependencias complejas como OpenCV.
-- Implementación de **Laplaciano en Go Puro** para garantizar una detección eficiente de enfoque directamente desde la librería estándar.
-- Adopción de **SQLite (`mattn/go-sqlite3`)** embebido localmente, lo cual facilita el despliegue de la aplicación sin perder capacidades relacionales.
+Esta instruccion le provera el ejecutable `./medscan` en su carpeta actual, el cual puede utilizar del mismo modo indicado previamente. Todo requerimiento externo de librerias sera manejado internamente por el `go.mod`.
