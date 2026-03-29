@@ -3,14 +3,15 @@ package cmd
 import (
 	"bufio"
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -197,13 +198,49 @@ MEDISCAN_LOG_LEVEL=info
 		fmt.Println("    medscan db stats")
 		fmt.Println()
 
+		// ── Instalar globalmente si se pasó --install ───────────────────────
+		if setupInstall {
+			if err := installBinary(); err != nil {
+				fmt.Printf("\n  Advertencia: no se pudo instalar globalmente: %v\n", err)
+			}
+		}
+
 		return nil
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(setupCmd)
+var setupInstall bool
+
+// installCmd es un subcomando dedicado para instalar medscan globalmente.
+// No requiere pasar por el wizard de configuración.
+var installCmd = &cobra.Command{
+	Use:   "install",
+	Short: "Instala medscan globalmente para ejecutarlo desde cualquier terminal",
+	Long: `Instala el binario de medscan en ~/.local/bin (sin necesitar permisos de root).
+
+Al finalizar, podrás ejecutar 'medscan' desde cualquier directorio
+sin necesidad de escribir './medscan' o buscar el archivo.
+
+Linux / macOS:
+  Copia el binario a ~/.local/bin/medscan y añade esa ruta al PATH
+  en ~/.bashrc y ~/.zshrc (si existen).
+
+Windows:
+  Imprime instrucciones para añadir el directorio al PATH del sistema.`,
+	// El subcomando install no necesita la DB
+	PersistentPreRunE:  func(cmd *cobra.Command, args []string) error { return nil },
+	PersistentPostRunE: func(cmd *cobra.Command, args []string) error { return nil },
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return installBinary()
+	},
 }
+
+func init() {
+	setupCmd.Flags().BoolVar(&setupInstall, "install", false, "Instala medscan globalmente en ~/.local/bin (Linux/macOS)")
+	rootCmd.AddCommand(setupCmd)
+	rootCmd.AddCommand(installCmd)
+}
+
 
 // ── helpers de entrada interactiva ──────────────────────────────────────────
 
@@ -273,8 +310,7 @@ func printBanner() {
 }
 
 func nowString() string {
-	// Fecha simple sin imports extra de time en este scope
-	return "ver 1.0"
+	return time.Now().Format("2006-01-02 15:04:05")
 }
 
 // ── validación de API key ───────────────────────────────────────────────────
@@ -330,9 +366,6 @@ func validateAnthropicKey(key string) error {
 	}
 	jsonBody, _ := json.Marshal(body)
 
-	// Decodificar base64 de la imagen para validar que es correcto
-	_ = base64.StdEncoding.EncodeToString([]byte("test"))
-
 	req, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", bytes.NewReader(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", key)
@@ -354,3 +387,159 @@ func validateAnthropicKey(key string) error {
 	_ = b
 	return nil
 }
+
+// ── instalación global ──────────────────────────────────────────────────────
+
+// installBinary instala el binario de medscan de forma global en el sistema
+// sin necesitar permisos de administrador (root/sudo).
+//
+// Linux/macOS: copia a ~/.local/bin y añade la ruta al PATH en el shell.
+// Windows:     imprime instrucciones claras para el usuario.
+func installBinary() error {
+	goos := runtime.GOOS
+
+	fmt.Println()
+	fmt.Println("  ┌─────────────────────────────────────────────────────────────┐")
+	fmt.Println("  │  Instalación global de medscan                             │")
+	fmt.Println("  └─────────────────────────────────────────────────────────────┘")
+	fmt.Println()
+
+	if goos == "windows" {
+		return installBinaryWindows()
+	}
+	return installBinaryUnix()
+}
+
+// installBinaryUnix instala medscan en ~/.local/bin (Linux y macOS).
+func installBinaryUnix() error {
+	// Ruta del ejecutable actual
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("no se pudo determinar la ruta del ejecutable: %w", err)
+	}
+	exePath, err = filepath.EvalSymlinks(exePath)
+	if err != nil {
+		return fmt.Errorf("no se pudo resolver el ejecutable: %w", err)
+	}
+
+	home, _ := os.UserHomeDir()
+	binDir := filepath.Join(home, ".local", "bin")
+	dest := filepath.Join(binDir, "medscan")
+
+	// Crear ~/.local/bin si no existe
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		return fmt.Errorf("no se pudo crear %s: %w", binDir, err)
+	}
+
+	// Copiar el binario
+	if err := setupCopyFile(exePath, dest); err != nil {
+		return fmt.Errorf("error copiando el binario: %w", err)
+	}
+
+	// Dar permisos de ejecución
+	if err := os.Chmod(dest, 0755); err != nil {
+		return fmt.Errorf("error asignando permisos: %w", err)
+	}
+
+	fmt.Printf("  Binario instalado en: %s\n\n", dest)
+
+	// Añadir ~/.local/bin al PATH en los shells más comunes
+	pathLine := `export PATH="$HOME/.local/bin:$PATH"`
+	addedToAny := false
+
+	for _, shellFile := range []string{".bashrc", ".zshrc", ".profile"} {
+		shellPath := filepath.Join(home, shellFile)
+		if _, err := os.Stat(shellPath); os.IsNotExist(err) {
+			continue
+		}
+
+		content, err := os.ReadFile(shellPath)
+		if err != nil {
+			continue
+		}
+
+		// No duplicar si ya está
+		if strings.Contains(string(content), pathLine) {
+			fmt.Printf("  PATH ya configurado en ~/%s\n", shellFile)
+			addedToAny = true
+			continue
+		}
+
+		entry := "\n# medscan — instalado por 'medscan setup --install'\n" + pathLine + "\n"
+		f, err := os.OpenFile(shellPath, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			fmt.Printf("  No se pudo escribir en ~/%s: %v\n", shellFile, err)
+			continue
+		}
+		_, _ = f.WriteString(entry)
+		_ = f.Close()
+		fmt.Printf("  PATH actualizado en ~/%s\n", shellFile)
+		addedToAny = true
+	}
+
+	fmt.Println()
+	if addedToAny {
+		fmt.Println("  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+		fmt.Println("  medscan instalado correctamente")
+		fmt.Println("  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+		fmt.Println()
+		fmt.Println("  Para que surta efecto en la sesión actual, ejecuta:")
+		fmt.Println()
+		fmt.Printf("    source ~/.bashrc   (o ~/.zshrc según tu shell)\n")
+		fmt.Println()
+		fmt.Println("  Después podrás ejecutar simplemente:")
+		fmt.Println()
+		fmt.Println("    medscan")
+		fmt.Println()
+	} else {
+		fmt.Printf("  El binario está en: %s\n", dest)
+		fmt.Println("  Añade manualmente esta línea a tu shell de configuración:")
+		fmt.Println()
+		fmt.Printf("    %s\n", pathLine)
+		fmt.Println()
+	}
+
+	return nil
+}
+
+// installBinaryWindows imprime instrucciones para agregar medscan al PATH en Windows.
+func installBinaryWindows() error {
+	exePath, err := os.Executable()
+	if err != nil {
+		exePath = "C:\\ruta\\a\\medscan.exe"
+	}
+	exeDir := filepath.Dir(exePath)
+
+	fmt.Println("  En Windows, sigue estos pasos para ejecutar medscan desde cualquier terminal:")
+	fmt.Println()
+	fmt.Println("  Opción 1 — PowerShell (sin admin, solo para tu usuario):")
+	fmt.Println()
+	fmt.Printf("    $env:Path += ';%s'\n", exeDir)
+	fmt.Println("    [Environment]::SetEnvironmentVariable('Path', $env:Path, 'User')")
+	fmt.Println()
+	fmt.Println("  Opción 2 — Copiar medscan.exe a una carpeta ya en el PATH:")
+	fmt.Println()
+	fmt.Println("    C:\\Windows\\System32\\   (requiere admin)")
+	fmt.Println("    C:\\Users\\TuUsuario\\AppData\\Local\\Microsoft\\WindowsApps\\")
+	fmt.Println()
+	fmt.Printf("  Directorio actual del ejecutable: %s\n", exeDir)
+	fmt.Println()
+	return nil
+}
+
+// setupCopyFile copia src → dst, usado para instalar el binario.
+func setupCopyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	return err
+}
+

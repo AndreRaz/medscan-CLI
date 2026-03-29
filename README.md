@@ -1,111 +1,270 @@
-# MEDSCAN
-
-`medscan` es una utilidad profesional de linea de comandos (CLI) e interfaz grafica de terminal (TUI) escrita en Go. Su proposito principal es la digitalizacion precisa de expedientes medicos fisicos (en papel), convirtiendolos de manera instantanea en formatos estructurados (JSON y bases de datos relacionales).
-
-El sistema se apoya en modelos avanzados de Inteligencia Artificial con capacidad de vision computacional y persiste la informacion utilizando una arquitectura de base de datos local embebida.
-
 <div align="center">
-  <img src="assets/tui_screenshot.png" alt="medscan TUI Interface" width="800">
-  <br />
-  <p><i>Interfaz Grafica del Panel de Control Principal de MEDSCAN</i></p>
+
+```
+  ███╗   ███╗███████╗██████╗ ███████╗ ██████╗ █████╗ ███╗  ██╗
+  ████╗ ████║██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗████╗ ██║
+  ██╔████╔██║█████╗  ██║  ██║███████╗██║     ███████║██╔██╗██║
+  ██║╚██╔╝██║██╔══╝  ██║  ██║╚════██║██║     ██╔══██║██║╚████║
+  ██║ ╚═╝ ██║███████╗██████╔╝███████║╚██████╗██║  ██║██║ ╚███║
+  ╚═╝     ╚═╝╚══════╝╚═════╝ ╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚══╝
+```
+
+**Digitalizador de expedientes médicos con visión por IA**
+
+[![Go Version](https://img.shields.io/badge/Go-1.22%2B-00ADD8?style=flat-square&logo=go)](https://golang.org)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square)](https://github.com/AndreRaz/medscan-CLI/releases)
+[![License](https://img.shields.io/badge/license-MIT-purple?style=flat-square)](LICENSE)
+[![Releases](https://img.shields.io/github/v/release/AndreRaz/medscan-CLI?style=flat-square&color=teal)](https://github.com/AndreRaz/medscan-CLI/releases)
+
 </div>
 
 ---
 
-## Caracteristicas Principales
+`medscan` es una herramienta CLI/TUI escrita en Go que digitaliza expedientes médicos en papel usando visión por IA. Apunta a una carpeta con fotos, y el sistema pre-procesa las imágenes localmente, detecta borrosidad antes de gastar tokens, transcribe el contenido a JSON estructurado y lo persiste en SQLite — todo desde la terminal.
 
-- **Tablero TUI Interactivo:** Visualizacion avanzada con controles navegables por teclado o raton. Incluye estadisticas en tiempo real, modulos maestro-detalle para pacientes y logs dinamicos.
-- **Vision por Inteligencia Artificial:** Integracion nativa con Google Gemini y Anthropic Claude para transcripcion sofisticada, lectura de manuscritos medicos y clasificacion de recetas.
-- **Deteccion de Imagenes Borrosas:** Evaluacion previa de calidad de imagen (mediante el algoritmo de Varianza del Laplaciano implementado en Go) para rechazar fotos desenfocadas, evitando el uso innecesario de cuota de red y de API.
-- **Preprocesamiento en Entorno Local:** Mejoramiento de contraste automatizado, conversion a escala de grises limitando los umbrales maximos de anchura, logrando alta fidelidad.
-- **Base de Datos Embebida Autosuficiente:** Persistencia local garantizada mediante SQLite, resuelta en un solo archivo binario. Olvidese de instalaciones adicionales o configuraciones de servidores de bases de datos complejos.
+<div align="center">
+  <img src="assets/tui_screenshot.png" alt="medscan TUI — Panel de Control" width="860">
+  <br/>
+  <sub>Panel de Control Principal — dashboard con estadísticas en tiempo real y log de actividad</sub>
+</div>
 
 ---
 
-## Instalacion y Despliegue (Guia Multiplataforma)
+## Caracteristicas
 
-La manera mas eficiente y segura de utilizar la herramienta en cualquier sistema operativo es haciendo uso de los binarios precompilados disponibles en la seccion **Releases** de este repositorio. **No se requiere instalar Go.**
+| Feature | Descripcion |
+|---|---|
+| **TUI interactiva** | Dashboard con estadisticas, maestro-detalle de pacientes y log de escaneo en tiempo real |
+| **Doble proveedor de IA** | Gemini 2.5 Flash (gratis, sin tarjeta) o Anthropic Claude (mayor precision) — intercambiables por env var |
+| **Deteccion de borrosidad** | Varianza del Laplaciano implementada en Go — rechaza fotos malas ANTES de consumir cuota de API |
+| **Pre-procesamiento local** | Escala de grises, contraste, resize a max 1200px — el LLM procesa texto limpio, menos tokens, mas precision |
+| **SQLite embebido** | Un solo archivo binario. Sin servidores, sin instalaciones adicionales |
+| **Deduplicacion SHA-256** | El mismo documento no se procesa dos veces aunque este en la misma carpeta |
+| **Setup interactivo** | `medscan setup` configura todo en minutos — valida la API key antes de guardarla |
+| **Cross-platform** | Binarios precompilados para Linux, macOS (Intel/ARM) y Windows |
 
-### 1. Obtencion del Archivo Ejecutable
+---
 
-Navegue a la pagina de **Releases** y localice el ejecutable correspondiente a su plataforma.
+## Instalacion rapida (binario precompilado)
 
-#### Para Usuarios de Microsoft Windows (64 bits)
-1. Descargue el archivo denominado `medscan-windows-amd64.exe`.
-2. Renombre el archivo simplemente a `medscan.exe` para mayor comodidad.
-3. Abra su linea de comandos (CMD o PowerShell) en el directorio de la descarga.
-4. Continue al paso de configuracion inicial.
+No requiere instalar Go ni ningun compilador.
 
-#### Para Usuarios de macOS (Apple)
-1. Descargue `medscan-darwin-arm64` (si su equipo cuenta con procesadores de la serie M1/M2/M3) o bien `medscan-darwin-amd64` (si su equipo utiliza procesador Intel).
-2. Renombre el archivo descargado a `medscan`.
-3. Abra la aplicacion Terminal y ubique el archivo en el directorio correspondiente.
-4. Otorgue los permisos necesarios ejecutando:
-   ```bash
-   chmod +x ./medscan
-   ```
-*(Nota para macOS: Si la ejecucion es bloqueada inicialmente por motivos de seguridad, dirijase a Configuracion del Sistema > Privacidad y Seguridad, y autorice la aplicacion).*
+### 1. Descargar el ejecutable
 
-#### Para Usuarios de Linux (Distribuciones derivadas de Debian, Red Hat, Arch, etc.)
-1. Descargue el archivo `medscan-linux-amd64` (para plataformas convencionales Intel/AMD) o `medscan-linux-arm64` (servidores y dispositivos ARM).
-2. Renombrelo a un estandar comodo, como `medscan`.
-3. Abra su emulador de terminal favorito y posicionece en el archivo.
-4. Asigne permisos de ejecucion:
-   ```bash
-   chmod +x ./medscan
-   ```
+Ve a la seccion **[Releases](https://github.com/AndreRaz/medscan-CLI/releases)** y descarga el binario correspondiente a tu sistema:
 
-### 2. Configuracion Inicial Asistida
+| Sistema | Archivo |
+|---|---|
+| Linux (Intel/AMD) | `medscan-linux-amd64` |
+| Linux (ARM / Raspberry Pi) | `medscan-linux-arm64` |
+| macOS (Apple Silicon M1/M2/M3) | `medscan-darwin-arm64` |
+| macOS (Intel) | `medscan-darwin-amd64` |
+| Windows (64 bits) | `medscan-windows-amd64.exe` |
 
-Para simplificar su utilizacion por primera vez, `medscan` incluye su propia herramienta de parametrizacion inteligente. Ejecute en su consola:
+### 2. Dar permisos de ejecucion (Linux y macOS)
 
 ```bash
-# En macOS o Linux:
+# Renombrar para comodidad
+mv medscan-linux-amd64 medscan        # Linux
+mv medscan-darwin-arm64 medscan       # macOS Apple Silicon
+
+# Dar permisos de ejecucion
+chmod +x ./medscan
+```
+
+> **macOS**: si el sistema bloquea la ejecucion, ir a **Ajustes del Sistema > Privacidad y Seguridad** y autorizar la app manualmente.
+
+### 3. Instalar globalmente (opcional pero recomendado)
+
+Para ejecutar `medscan` desde cualquier directorio sin `./`:
+
+```bash
+# Linux y macOS — instala en ~/.local/bin sin necesitar permisos root
+./medscan install
+
+# Luego recarga tu shell
+source ~/.bashrc   # o ~/.zshrc
+```
+
+En **Windows**, el comando `medscan install` imprime las instrucciones exactas para agregar el ejecutable al PATH del sistema.
+
+### 4. Configuracion inicial
+
+```bash
 ./medscan setup
-
-# En Windows:
-.\medscan.exe setup
 ```
 
-El asistente interactivo lo llevara de la mano para establecer:
-1. Una llave de activacion (API Key) sin costo de los modelos disponibles.
-2. La ruta local preferida donde residira su base de datos.
-3. La generacion de un archivo de contexto local (`.env`).
+El asistente interactivo configura:
+- Proveedor de IA (Gemini gratuito o Anthropic)
+- API Key (con validacion antes de guardar)
+- Ruta de la base de datos
+- Parametros de procesamiento de imagen
 
-### 3. Ejecucion de Tareas Principales (CLI y TUI)
+Al finalizar genera un archivo `.env` listo para usar.
 
-`medscan` posee una gama de comandos dedicados para procesar la reporteria en sus expedientes medicos:
+---
 
-**Apertura del Panel Interactivo (Recomendado):**
-Inicie directamente el sistema exploratorio y digitalizador:
+## Uso
+
+### Interfaz grafica (TUI) — recomendado
+
 ```bash
-./medscan
+medscan
 ```
 
-**Escaneo Silencioso / de Lotes:**
-Para inyectar lotes directos de fotografias de historiales medicos en carpetas:
+Lanza el panel de control interactivo. Navegacion con teclado o raton.
+
+### Escanear una carpeta
+
 ```bash
-./medscan scan ./docs/
+medscan scan ./docs/expedientes/
 ```
 
-**Consulta de Pacientes y Estadisticas:**
-Para revisar los volumenes de actividad de pacientes y encontrar coincidencias o errores en subidas pasadas:
+Procesa todas las imagenes de la carpeta: validacion → deteccion de borrosidad → pre-procesamiento → transcripcion por IA → guardado en SQLite.
+
+### Consultar pacientes
+
 ```bash
-./medscan patient list
-./medscan query NUMERODECURP123
-./medscan db stats
+# Listar todos los pacientes registrados
+medscan patient list
+
+# Expediente completo de un paciente (por CURP)
+medscan query CURP123456HDFXXX00
+
+# Exportar expediente a JSON
+medscan export CURP123456HDFXXX00
+```
+
+### Estadisticas de la base de datos
+
+```bash
+medscan db stats          # Resumen general
+medscan db visitas        # Historial de visitas
+medscan db rechazados     # Archivos rechazados con motivo y blur score
+medscan db export ./backup/medscan.db        # Copia de seguridad
+medscan db export ./backup/medscan.db --move # Mover la DB
 ```
 
 ---
 
-## Compilacion desde el Codigo Fuente
+## Obtener API Keys (gratuito)
 
-Si usted cuenta con experiencia como desarrollador y dispone del compilador Go (`v1.22+`), el entorno de construccion esta preparado.
+### Google Gemini — sin tarjeta de credito
+
+1. Ir a [https://aistudio.google.com](https://aistudio.google.com)
+2. Clic en **Get API key** → crear proyecto → copiar key
+3. Limites del tier gratuito: 10 requests/min, 250 requests/dia
+
+### Anthropic Claude — mayor precision en letra medica dificil
+
+1. Ir a [https://console.anthropic.com](https://console.anthropic.com)
+2. **Settings → API Keys → Create Key**
+3. Requiere cuenta con saldo
+
+---
+
+## Configuracion completa
+
+Todas las opciones se configuran via variables de entorno en el archivo `.env`:
+
+```bash
+# Proveedor (default: anthropic)
+MEDISCAN_PROVIDER=gemini              # gemini | anthropic
+
+# API Keys
+GEMINI_API_KEY=AIzaSy...
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Modelos
+MEDISCAN_GEMINI_MODEL=gemini-2.5-flash
+MEDISCAN_ANTHROPIC_MODEL=claude-opus-4-5
+
+# Base de datos
+MEDISCAN_DB_PATH=./mediscan.db
+
+# Procesamiento de imagen
+MEDISCAN_MAX_WIDTH=1200               # px maximo (reduce tokens)
+MEDISCAN_CONTRAST=1.3                 # multiplicador de contraste
+MEDISCAN_BLUR_THRESHOLD=100.0         # varianza minima (0 = desactivado)
+
+# Logging
+MEDISCAN_LOG_LEVEL=info               # debug | info | warn | error
+```
+
+### Referencia de blur score
+
+| Condicion de la foto | Score tipico | Accion |
+|---|---|---|
+| Nitida, buena iluminacion | 200 – 800 | Procesada normalmente |
+| Ligeramente movida | 80 – 150 | Procesada con advertencia |
+| Muy borrosa | < 80 | Rechazada — no consume API |
+| Completamente fuera de foco | < 20 | Rechazada con error claro |
+
+---
+
+## Pipeline de procesamiento
+
+Cada imagen pasa por las siguientes etapas antes de llegar a la IA:
+
+```
+Foto original (celular del medico)
+        │
+        ▼
+  [1] Validacion — formato y tamano (max 20MB)
+        │
+        ▼
+  [2] Deteccion de borrosidad (Varianza del Laplaciano)
+        │  score < umbral → rechazada, sin llamada a API
+        ▼
+  [3] Pre-procesamiento local
+        │  · Escala de grises
+        │  · Ajuste de contraste
+        │  · Resize a max 1200px de ancho
+        ▼
+  [4] Codificacion base64 → envio a API
+        │
+        ▼
+  [5] Parseo JSON → SQLite
+```
+
+---
+
+## Compilar desde el codigo fuente
+
+Requiere Go 1.22 o superior.
 
 ```bash
 git clone https://github.com/AndreRaz/medscan-CLI.git
 cd medscan-CLI
+
+# Compilar para la plataforma actual
 make build
+
+# Compilar para todas las plataformas (Linux, macOS, Windows)
+make build-all
+
+# Instalar globalmente en ~/.local/bin
+make install
 ```
 
-Esta instruccion le provera el ejecutable `./medscan` en su carpeta actual, el cual puede utilizar del mismo modo indicado previamente. Todo requerimiento externo de librerias sera manejado internamente por el `go.mod`.
+Los binarios multiplataforma quedan en `./dist/`.
+
+---
+
+## Stack tecnologico
+
+| Componente | Tecnologia |
+|---|---|
+| Lenguaje | Go 1.22+ |
+| TUI | [tview](https://github.com/rivo/tview) + [tcell](https://github.com/gdamore/tcell) |
+| Base de datos | SQLite via [go-sqlite3](https://github.com/mattn/go-sqlite3) |
+| CLI | [Cobra](https://github.com/spf13/cobra) |
+| Procesamiento de imagen | [imaging](https://github.com/disintegration/imaging) |
+| Proveedor IA (default) | Google Gemini 2.5 Flash |
+| Proveedor IA (precision) | Anthropic Claude Opus |
+
+---
+
+## Licencia
+
+MIT — libre para uso personal y comercial.
