@@ -18,10 +18,10 @@ jobs:
           - os: ubuntu-latest
             goos: linux
             arch: arm64
-          - os: macos-13
+          - os: macos-latest
             goos: darwin
             arch: amd64
-          - os: macos-14
+          - os: macos-latest
             goos: darwin
             arch: arm64
           - os: windows-latest
@@ -56,6 +56,12 @@ jobs:
             EXT=".exe"
           else
             EXT=""
+          fi
+          
+          # Handle macOS cross-compilation (arm64 to amd64)
+          if [ "${{ matrix.goos }}" = "darwin" ] && [ "${{ matrix.arch }}" = "amd64" ]; then
+            export CGO_CFLAGS="-target x86_64-apple-macos10.12"
+            export CGO_LDFLAGS="-target x86_64-apple-macos10.12"
           fi
           
           mkdir -p dist
