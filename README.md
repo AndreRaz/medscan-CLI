@@ -1,4 +1,4 @@
-# medscan CLI
+# MEDSCAN
 
 `medscan` es una utilidad de línea de comandos (CLI) en Go para digitalizar expedientes médicos físicos (papel) y convertirlos al instante en un formato estructurado JSON. Utiliza Modelos de Lenguaje (LLMs) con capacidad de visión y persistencia local en SQLite.
 
